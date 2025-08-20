@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صفحة الموظف</title>
+  <style>
+    body {font-family: Arial, sans-serif; background:#f4f4f9; margin:0; padding:20px; direction:rtl;}
+    .form-container,.invoice-container {background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1); margin-bottom:20px;}
+    .form-container input,.form-container select {width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:5px; font-size:16px;}
+    .form-container button {padding:10px 20px; background:#4CAF50; color:#fff; border:none; border-radius:5px; cursor:pointer;}
+    .invoice-container table {width:100%; border-collapse:collapse;}
+    .invoice-container th,.invoice-container td {padding:10px; border:1px solid #ccc; text-align:center;}
+    .invoice-container th {background:#f4f4f9;}
+    .print-button {padding:10px 20px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; margin-top:10px;}
+    .print-button:hover {background:#0056b3;}
+    .logout-button {padding:12px 30px; background:#e74c3c; color:white; border:none; border-radius:30px; cursor:pointer; font-size:18px; margin-top:20px;}
+    .logout-button:hover {background:#c0392b;}
+  </style>
+</head>
+<body>
+  <h1>صفحة الموظف</h1>
+  <button class="logout-button" onclick="logout()">تسجيل الخروج</button>
+
+  <div class="form-container">
+    <h2>إضافة فاتورة</h2>
+    <select id="productSelect"></select>
+    <input type="number" id="quantity" placeholder="الكمية" value="1">
+    <button onclick="addToInvoice()">إضافة إلى الفاتورة</button>
+  </div>
+
+  <div class="invoice-container">
+    <h2>الفاتورة</h2>
+    <table id="invoiceTable">
+      <thead>
+        <tr>
+          <th>اسم المنتج</th>
+          <th>السعر</th>
+          <th>الكمية</th>
+          <th>الإجمالي</th>
+          <th>حذف</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p>المجموع: <span id="totalAmount">0</span> ريال</p>
+    <button onclick="saveInvoice()">حفظ الفاتورة</button>
+    <button class="print-button" onclick="printInvoice()">طباعة الفاتورة</button>
+  </div>
+
+  <script>
+    const products = JSON.parse(localStorage.getItem('products')) || [];
+    const offers = JSON.parse(localStorage.getItem('offers')) || [];
+    const productSelect = document.getElementById('productSelect');
+
+    // تحميل المنتجات في القائمة
+    products.forEach(p => {
+      const option = document.createElement('option');
+      option.value = p.name;
+      option.textContent = `${p.name} - ${p.price} ريال`;
+      productSelect.appendChild(option);
+    });
+
+    let invoiceItems = [];
+
+    // إضافة صنف للفاتورة
+    function addToInvoice() {
+      const selected = productSelect.value;
+      const qty = parseInt(document.getElementById('quantity').value);
+      const product = products.find(p => p.name === selected);
+
+      if (product && qty > 0) {
+        let finalPrice = product.price;
+
+        // تطبيق الخصم إذا فيه عرض
+        const offer = offers.find(o => o.product === product.name);
+        if (offer) {
+          finalPrice = finalPrice - (finalPrice * offer.discount / 100);
+        }
+
+        const total = finalPrice * qty;
+        invoiceItems.push({ name: product.name, price: finalPrice, quantity: qty, total });
+        updateInvoice();
+      }
+    }
+
+    // تحديث جدول الفاتورة
+    function updateInvoice() {
+      const body = document.querySelector('#invoiceTable tbody');
+      body.innerHTML = '';
+      let totalAmount = 0;
+      invoiceItems.forEach((item, index) => {
+        body.innerHTML += `<tr>
+          <td>${item.name}</td>
+          <td>${item.price} ريال</td>
+          <td>${item.quantity}</td>
+          <td>${item.total} ريال</td>
+          <td><button onclick="removeFromInvoice(${index})">❌</button></td>
+        </tr>`;
+        totalAmount += item.total;
+      });
+      document.getElementById('totalAmount').textContent = totalAmount;
+    }
+
+    // حذف صنف من الفاتورة
+    function removeFromInvoice(index) {
+      invoiceItems.splice(index, 1); // حذف الصنف
+      updateInvoice(); // تحديث الجدول
+    }
+
+    // حفظ الفاتورة
+    function saveInvoice() {
+      const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+      invoices.push({ items: invoiceItems, total: document.getElementById('totalAmount').textContent });
+      localStorage.setItem('invoices', JSON.stringify(invoices));
+      alert("تم حفظ الفاتورة!");
+      invoiceItems = [];
+      updateInvoice();
+    }
+
+    // طباعة الفاتورة
+    function printInvoice() {
+      let content = `<h2>فاتورة المقهى</h2><table border="1" style="width:100%; border-collapse:collapse;">
+      <tr><th>اسم المنتج</th><th>السعر</th><th>الكمية</th><th>الإجمالي</th></tr>`;
+      invoiceItems.forEach(i => {
+        content += `<tr><td>${i.name}</td><td>${i.price} ريال</td><td>${i.quantity}</td><td>${i.total} ريال</td></tr>`;
+      });
+      content += `</table><p><strong>المجموع: ${document.getElementById('totalAmount').textContent} ريال</strong></p>`;
+      const win = window.open('', '_blank');
+      win.document.write(content);
+      win.document.close();
+      win.print();
+    }
+
+    // تسجيل الخروج
+    function logout() {
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

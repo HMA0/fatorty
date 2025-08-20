@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول</title>
+  <style>
+    body {font-family: Arial, sans-serif; background:#f4f4f9; margin:0; padding:0; direction:rtl; text-align:center;}
+    .login-container {background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1); display:inline-block; margin-top:100px;}
+    .login-container input {width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:5px; font-size:16px;}
+    .login-container button {padding:10px 20px; background:#4CAF50; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:16px;}
+    .login-container button:hover {background:#45a049;}
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>تسجيل الدخول</h2>
+    <input type="text" id="username" placeholder="اسم المستخدم">
+    <input type="password" id="password" placeholder="كلمة المرور">
+    <button onclick="login()">دخول</button>
+  </div>
+
+  <script>
+    const admin = { username: "admin", password: "admin123" };
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (username === admin.username && password === admin.password) {
+        window.location.href = "admin.html"; 
+      } else if (employees.some(emp => emp.username === username && emp.password === password)) {
+        window.location.href = "employee.html"; 
+      } else {
+        alert("اسم المستخدم أو كلمة المرور غير صحيحة!");
+      }
+    }
+  </script>
+</body>
+</html>

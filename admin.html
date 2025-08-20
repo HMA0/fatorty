@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صفحة المدير</title>
+  <style>
+    body {font-family: Arial, sans-serif; background:#f4f4f9; margin:0; padding:20px; direction:rtl;}
+    .section {background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.1); margin-bottom:20px;}
+    .section input, .section select {width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:5px; font-size:16px;}
+    .section button {padding:10px 20px; background:#4CAF50; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:16px;}
+    .section table {width:100%; border-collapse:collapse;}
+    .section th, .section td {padding:10px; border:1px solid #ccc; text-align:center;}
+    .section th {background:#f4f4f9;}
+    .print-button {padding:10px 20px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; margin-top:10px;}
+    .print-button:hover {background:#0056b3;}
+    .logout-button {padding:12px 30px; background:#e74c3c; color:white; border:none; border-radius:30px; cursor:pointer; font-size:18px; margin-top:20px;}
+    .logout-button:hover {background:#c0392b;}
+  </style>
+</head>
+<body>
+  <h1>صفحة المدير</h1>
+  <button class="logout-button" onclick="logout()">تسجيل الخروج</button>
+
+  <!-- إدارة المنتجات -->
+  <div class="section">
+    <h2>إدارة المنتجات</h2>
+    <input type="text" id="productName" placeholder="اسم المنتج">
+    <input type="number" id="productPrice" placeholder="سعر المنتج">
+    <button onclick="addProduct()">إضافة منتج</button>
+    <table id="productTable">
+      <thead>
+        <tr><th>اسم المنتج</th><th>السعر</th><th>حذف</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- إدارة الموظفين -->
+  <div class="section">
+    <h2>إدارة الموظفين</h2>
+    <input type="text" id="employeeUsername" placeholder="اسم المستخدم">
+    <input type="password" id="employeePassword" placeholder="كلمة المرور">
+    <button onclick="addEmployee()">إضافة موظف</button>
+    <table id="employeeTable">
+      <thead>
+        <tr><th>اسم المستخدم</th><th>حذف</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- إدارة العروض -->
+  <div class="section">
+    <h2>إدارة العروض</h2>
+    <select id="offerProduct"></select>
+    <input type="number" id="offerDiscount" placeholder="الخصم %" value="0">
+    <button onclick="addOffer()">إضافة عرض</button>
+    <table id="offerTable">
+      <thead>
+        <tr><th>المنتج</th><th>الخصم %</th><th>حذف العرض</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- عرض الفواتير -->
+  <div class="section">
+    <h2>الفواتير المحفوظة</h2>
+    <button onclick="loadInvoices()">عرض الفواتير</button>
+    <button class="print-button" onclick="printInvoices()">طباعة الفواتير</button>
+    <button style="background:#e74c3c;" onclick="deleteAllInvoices()">حذف جميع الفواتير</button>
+    <table id="invoiceTable">
+      <thead>
+        <tr><th>رقم الفاتورة</th><th>المجموع</th><th>التفاصيل</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let products = JSON.parse(localStorage.getItem('products')) || [];
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let offers = JSON.parse(localStorage.getItem('offers')) || [];
+
+    // ===== المنتجات =====
+    function addProduct() {
+      const name = document.getElementById('productName').value;
+      const price = parseFloat(document.getElementById('productPrice').value);
+      if (name && price >= 0) {
+        products.push({ name, price });
+        localStorage.setItem('products', JSON.stringify(products));
+        updateProductTable();
+        updateOfferSelect();
+      }
+    }
+
+    function updateProductTable() {
+      const tableBody = document.querySelector('#productTable tbody');
+      tableBody.innerHTML = '';
+      products.forEach((product, index) => {
+        tableBody.innerHTML += `<tr>
+            <td>${product.name}</td>
+            <td>${product.price} ريال</td>
+            <td><button onclick="deleteProduct(${index})">حذف</button></td>
+        </tr>`;
+      });
+    }
+
+    function deleteProduct(index) {
+      products.splice(index, 1);
+      localStorage.setItem('products', JSON.stringify(products));
+      updateProductTable();
+      updateOfferSelect();
+    }
+
+    // ===== الموظفين =====
+    function addEmployee() {
+      const username = document.getElementById('employeeUsername').value;
+      const password = document.getElementById('employeePassword').value;
+      if (username && password) {
+        employees.push({ username, password });
+        localStorage.setItem('employees', JSON.stringify(employees));
+        updateEmployeeTable();
+      }
+    }
+
+    function updateEmployeeTable() {
+      const tableBody = document.querySelector('#employeeTable tbody');
+      tableBody.innerHTML = '';
+      employees.forEach((employee, index) => {
+        tableBody.innerHTML += `
+          <tr>
+            <td>${employee.username}</td>
+            <td><button onclick="deleteEmployee(${index})">حذف</button></td>
+          </tr>`;
+      });
+    }
+
+    function deleteEmployee(index) {
+      employees.splice(index, 1);
+      localStorage.setItem('employees', JSON.stringify(employees));
+      updateEmployeeTable();
+    }
+
+    // ===== العروض =====
+    function updateOfferSelect() {
+      const select = document.getElementById('offerProduct');
+      select.innerHTML = '';
+      products.forEach((p) => {
+        const option = document.createElement('option');
+        option.value = p.name;
+        option.textContent = p.name;
+        select.appendChild(option);
+      });
+    }
+
+    function addOffer() {
+      const productName = document.getElementById('offerProduct').value;
+      const discount = parseFloat(document.getElementById('offerDiscount').value) || 0;
+      if (productName && discount > 0) {
+        offers.push({ product: productName, discount });
+        localStorage.setItem('offers', JSON.stringify(offers));
+        updateOfferTable();
+      }
+    }
+
+    function updateOfferTable() {
+      const tableBody = document.querySelector('#offerTable tbody');
+      tableBody.innerHTML = '';
+      offers.forEach((offer, index) => {
+        tableBody.innerHTML += `
+          <tr>
+            <td>${offer.product}</td>
+            <td>${offer.discount}%</td>
+            <td><button onclick="deleteOffer(${index})">حذف</button></td>
+          </tr>`;
+      });
+    }
+
+    function deleteOffer(index) {
+      offers.splice(index, 1);
+      localStorage.setItem('offers', JSON.stringify(offers));
+      updateOfferTable();
+    }
+
+    // ===== الفواتير =====
+    function loadInvoices() {
+      const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+      const tableBody = document.querySelector('#invoiceTable tbody');
+      tableBody.innerHTML = '';
+      let grandTotal = 0;
+
+      invoices.forEach((invoice, index) => {
+        tableBody.innerHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${invoice.total} ريال</td>
+            <td><button onclick="viewInvoiceDetails(${index})">عرض التفاصيل</button></td>
+          </tr>`;
+        grandTotal += parseFloat(invoice.total);
+      });
+
+      if (invoices.length > 0) {
+        tableBody.innerHTML += `
+          <tr>
+            <td colspan="2"><strong>إجمالي جميع الفواتير</strong></td>
+            <td><strong>${grandTotal} ريال</strong></td>
+          </tr>`;
+      }
+    }
+
+    function deleteAllInvoices() {
+      if (confirm("هل أنت متأكد من حذف جميع الفواتير؟")) {
+        localStorage.removeItem('invoices');
+        loadInvoices();
+      }
+    }
+
+    function viewInvoiceDetails(index) {
+      const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+      const invoice = invoices[index];
+      alert(`تفاصيل الفاتورة:\n${JSON.stringify(invoice.items, null, 2)}`);
+    }
+
+    function printInvoices() {
+      const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+      let content = `<h2>الفواتير المحفوظة</h2>
+      <table border="1" style="width:100%; border-collapse:collapse;">
+      <tr><th>رقم الفاتورة</th><th>المجموع</th></tr>`;
+      invoices.forEach((inv, i) => {
+        content += `<tr><td>${i + 1}</td><td>${inv.total} ريال</td></tr>`;
+      });
+      content += `</table>`;
+      const win = window.open('', '_blank');
+      win.document.write(content);
+      win.document.close();
+      win.print();
+    }
+
+    // تحميل البيانات عند فتح الصفحة
+    updateProductTable();
+    updateEmployeeTable();
+    updateOfferSelect();
+    updateOfferTable();
+
+    function logout() {
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>
